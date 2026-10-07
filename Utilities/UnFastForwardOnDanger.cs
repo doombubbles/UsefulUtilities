@@ -58,7 +58,7 @@ public class UnFastForwardOnDanger : ToggleableUtility
             {
                 while (enumerator.MoveNext())
                 {
-                    var bloon = enumerator.Current;
+                    var bloon = enumerator._current;
                     if (!bloon.bloonModel.isBoss &&
                         bloon.PercThroughMap() >= TrackThreshold / 100f &&
                         bloon.GetModifiedTotalLeakDamage() >= simulation.Health * DangerThreshold / 100f)

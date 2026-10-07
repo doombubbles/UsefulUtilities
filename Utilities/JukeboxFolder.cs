@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using BTD_Mod_Helper;
 using BTD_Mod_Helper.Api;
 using BTD_Mod_Helper.Api.Audio;
@@ -35,23 +32,22 @@ public class JukeboxFolder : UsefulUtility
             {
                 if (Path.GetFullPath(newPath) == Path.GetFullPath(watcher!.Path)) return;
                 watcher.Path = newPath;
-                TaskScheduler.ScheduleTask(() =>
-                {
-                    var tracks = CreateTracks(newPath);
-                    AddTracks(tracks);
-                    LoadTracks(tracks);
-                    RegisterTracks(tracks);
-                });
+                TaskScheduler.ScheduleTask(() => AddTracks(CreateTracks(newPath)));
             }
         };
 
     private static FileSystemWatcher watcher = null!;
 
-    public static readonly ModSettingBool LoadAsynchronously = new(true)
+    public static readonly ModSettingInt LoadedTrackLimit = new(3)
     {
-        description = "Whether to load in tracks asynchronously on a separate thread or directly on the main thread",
+        min = 1,
+        max = 25,
+        description = "How many jukebox tracks to keep decoded in memory at once. Tracks are decoded when you play " +
+                      "them and the least recently played ones past this limit are dropped. Raising this uses a lot " +
+                      "more memory: an hour of audio is over a gigabyte once decoded.",
         icon = VanillaSprites.LoadingWheel,
         category = UsefulUtilitiesMod.Jukebox,
+        onSave = limit => ModJukeboxTrack.MaxLoadedLazyClips = (int) limit
     };
 
     public static readonly ModSettingBool NormalizeVolume = new(true)
@@ -61,8 +57,6 @@ public class JukeboxFolder : UsefulUtility
         icon = VanillaSprites.VolumeIcon,
         category = UsefulUtilitiesMod.Jukebox,
     };
-
-    public static Task? LoadTask { get; private set; }
 
     public override IEnumerable<ModContent> Load()
     {
@@ -76,92 +70,53 @@ public class JukeboxFolder : UsefulUtility
             watcher.Filters.Add("*" + extension);
         }
         watcher.IncludeSubdirectories = true;
-        watcher.Created += (_, args) => TaskScheduler.ScheduleTask(() =>
-        {
-            var track = new FileJukeboxTrack(args.FullPath);
-            AddTracks(track);
-            LoadTracks(track);
-            RegisterTracks(track);
-        }, ScheduleType.WaitForSeconds, 1);
+        watcher.Created += (_, args) => TaskScheduler.ScheduleTask(
+            () => AddTracks(TracksFor([args.FullPath])), ScheduleType.WaitForSeconds, 1);
 
-        var tracks = CreateTracks(FolderPath);
-
-        if (LoadAsynchronously)
-        {
-            LoadTask = Task.Run(() =>
-            {
-                LoadTracks(tracks);
-            });
-        }
-
-        return result.Concat(tracks);
+        return result.Concat(CreateTracks(FolderPath));
     }
+
+    public override void OnRegister() => ModJukeboxTrack.MaxLoadedLazyClips = (int) LoadedTrackLimit;
 
     public static IEnumerable<string> GetFiles(string path) => ResourceHandler.AudioExtensions
         .SelectMany(extension => Directory.EnumerateFiles(path, "*" + extension, SearchOption.AllDirectories));
 
-    public static FileJukeboxTrack[] CreateTracks(string folderPath) =>
-        GetFiles(folderPath).Select(file => new FileJukeboxTrack(file)).ToArray();
+    public static FileJukeboxTrack[] CreateTracks(string folderPath) => TracksFor(GetFiles(folderPath));
+
+    private static readonly HashSet<string> KnownFiles = [];
+
+    private static FileJukeboxTrack[] TracksFor(IEnumerable<string> files) => files
+        .Where(file => KnownFiles.Add(Path.GetFullPath(file)))
+        .Select(file => new FileJukeboxTrack(file))
+        .ToArray();
 
     public static void AddTracks(params IEnumerable<FileJukeboxTrack> tracks)
     {
-        GetInstance<JukeboxFolder>().mod.AddContent(tracks);
-    }
+        var newTracks = tracks.ToArray();
+        if (newTracks.Length == 0) return;
 
-    public static void LoadTracks(params IEnumerable<FileJukeboxTrack> tracks)
-    {
-        foreach (var fileJukeboxTrack in tracks)
-        {
-            fileJukeboxTrack.LoadTrack();
-        }
-    }
+        GetInstance<JukeboxFolder>().mod.AddContent(newTracks);
 
-    public static void RegisterTracks(params IEnumerable<FileJukeboxTrack> tracks)
-    {
-        foreach (var track in tracks.Where(track => !track.Registered))
+        foreach (var track in newTracks.Where(track => !track.Registered))
         {
             track.Register();
             track.RegisterText(LocalizationManager.Instance.textTable);
-        }
-    }
-
-    public class LoadJukeboxTracks : ModLoadTask
-    {
-        public override bool ShouldRun => LoadTask is { IsCompleted: false };
-
-        public override bool ShowProgressBar => true;
-
-        public override string DisplayName => "Loading Jukebox Tracks...";
-
-        public override IEnumerator Coroutine()
-        {
-            var tracks = GetContent<FileJukeboxTrack>();
-
-            while (ShouldRun)
-            {
-                yield return null;
-
-                Progress = tracks.Count(track => track.Complete) / (float) tracks.Count;
-            }
-
-            RegisterTracks(tracks);
+            track.Registered = true;
         }
     }
 
     public class FileJukeboxTrack : ModJukeboxTrack
     {
         public sealed override string Name { get; }
-        public override AudioClip? AudioClip => audioClip;
 
         public override string DisplayName => Name;
 
-        private AudioClip? audioClip;
+        public override bool LazyLoadClip => true;
 
-        public override int RegisterPerFrame => 1;
+        public override int RegisterPerFrame => 25;
 
         public string FilePath { get; }
-        public bool Complete { get; private set; }
-        public bool Registered { get; private set; }
+        public bool Registered { get; internal set; }
 
         public FileJukeboxTrack(string filePath)
         {
@@ -172,49 +127,30 @@ public class JukeboxFolder : UsefulUtility
             ModHelper.Msg<UsefulUtilitiesMod>($"Adding track \"{Name}\" from {FilePath}");
         }
 
-        public override void Register()
+        protected override AudioClip? LoadClip()
         {
-            if (!Complete && !LoadAsynchronously)
-            {
-                LoadTrack();
-            }
-
-            if (Complete && audioClip != null)
-            {
-                base.Register();
-                Registered = true;
-            }
-        }
-
-        public void LoadTrack()
-        {
-            if (Complete) return;
-
             try
             {
                 var start = DateTime.Now;
                 using var waveStream = ResourceHandler.GetWaveStream(FilePath);
                 if (NormalizeVolume) BloonsMod.NormalizeAudioVolume.Add(Id);
-                audioClip = ResourceHandler.CreateAudioClip(waveStream, Id);
+                var audioClip = ResourceHandler.CreateAudioClip(waveStream, Id);
                 var end = DateTime.Now;
 
                 if (audioClip != null)
                 {
                     ModHelper.Msg<UsefulUtilitiesMod>(
                         $"Successfully processed track {Name} duration {TimeSpan.FromSeconds(audioClip.length):g} in {(end - start).TotalSeconds:N1}s");
-                    return;
+                    return audioClip;
                 }
             }
             catch (Exception e)
             {
                 ModHelper.Error<UsefulUtilitiesMod>(e);
             }
-            finally
-            {
-                Complete = true;
-            }
 
             ModHelper.Error<UsefulUtilitiesMod>($"Unable to parse potential jukebox track file {FilePath}");
+            return null;
         }
     }
 }

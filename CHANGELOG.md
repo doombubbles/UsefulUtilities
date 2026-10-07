@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.10] - 2026-10-06
+
+- Updated for BTD6 v57
+- Improved memory performance of Jukebox songs
+
 ## [1.4.9] - 2026-08-09
 
 - Fixed potential enumerator crashes for some utilities
@@ -276,7 +281,8 @@ be removed as it can still be useful for finding a very tiny mearby placement sp
 
 - Initial Release
 
-[unreleased]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.9...HEAD
+[unreleased]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.10...HEAD
+[1.4.10]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.9...1.4.10
 [1.4.9]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.8...1.4.9
 [1.4.8]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.7...1.4.8
 [1.4.7]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.6...1.4.7
