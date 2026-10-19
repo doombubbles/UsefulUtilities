@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using HarmonyLib;
 using Il2CppAssets.Scripts.Models;
+using Il2CppAssets.Scripts.Models.ServerEvents;
 using Il2CppAssets.Scripts.Models.TowerSets;
 using Il2CppAssets.Scripts.Unity;
 using Il2CppAssets.Scripts.Unity.Bridge;
@@ -60,13 +61,13 @@ public class InGameHeroSwitchUtility
         }
     }
 
-    private static string CurrentHero
+    internal static string CurrentHero
     {
         get => InGame.Bridge.players[InGame.Bridge.GetInputId()].hero;
         set => InGame.Bridge.players[InGame.Bridge.GetInputId()].hero = value;
     }
 
-    private static void ChangeHero(int delta)
+    internal static void ChangeHero(int delta)
     {
         cycleDown = cycleUp = false;
 
@@ -84,7 +85,7 @@ public class InGameHeroSwitchUtility
 
         var index = heroes.First(hdm => hdm.towerId == CurrentHero).towerIndex;
         var newHero = "";
-        while (!unlockedHeroes.Contains(newHero))
+        while (!unlockedHeroes.Contains(newHero) || !IsHeroAllowed(newHero))
         {
             index += delta;
             index = (index + heroes.Length) % heroes.Length;
@@ -95,6 +96,16 @@ public class InGameHeroSwitchUtility
         CurrentHero = newHero;
         
         InGame.instance.InputManager.SetSelected(null);
+    }
+
+    private static bool IsHeroAllowed(string hero)
+    {
+        var towers = InGameData.CurrentGame?.dcModel?.towers;
+        if (towers == null ||
+            towers.Any(t => t.isHero && t.tower == DailyChallengeModel.CHOSENPRIMARYHERO && t.max != 0))
+            return true;
+
+        return towers.Any(t => t.isHero && t.tower == hero && t.max != 0);
     }
 
     private static void ResetInventory(string newHero)

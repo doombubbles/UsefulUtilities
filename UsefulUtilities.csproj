@@ -30,6 +30,7 @@
         <Compile Remove="Utilities/CopyPasteTowers.cs"/>
         <Compile Remove="Utilities/IndiscriminatePets.cs"/>
         <Compile Remove="Utilities/InGameHeroSwitch.cs"/>
+        <Compile Remove="Utilities/InGameHeroSwitchTest.cs"/>
         <Compile Remove="Utilities/SacrificeHelper.cs"/>
     </ItemGroup>
 

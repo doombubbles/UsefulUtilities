@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.12] - 2026-10-19
+
+- Fixed In Game Hero Switch allowing cycling to heroes not allowed by challenge restrictions
+
 ## [1.4.11] - 2026-10-19
 
 - Removed Ability Seconds as NK added their own version
@@ -286,7 +290,8 @@ be removed as it can still be useful for finding a very tiny mearby placement sp
 
 - Initial Release
 
-[unreleased]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.11...HEAD
+[unreleased]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.12...HEAD
+[1.4.12]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.11...1.4.12
 [1.4.11]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.10...1.4.11
 [1.4.10]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.9...1.4.10
 [1.4.9]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.8...1.4.9
