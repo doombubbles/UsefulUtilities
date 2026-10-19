@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.11] - 2026-10-19
+
+- Removed Ability Seconds as NK added their own version
+- Improved background loading of jukebox folder songs
+
 ## [1.4.10] - 2026-10-06
 
 - Updated for BTD6 v57
@@ -281,7 +286,8 @@ be removed as it can still be useful for finding a very tiny mearby placement sp
 
 - Initial Release
 
-[unreleased]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.10...HEAD
+[unreleased]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.11...HEAD
+[1.4.11]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.10...1.4.11
 [1.4.10]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.9...1.4.10
 [1.4.9]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.8...1.4.9
 [1.4.8]: https://github.com/doombubbles/UsefulUtilities/compare/1.4.7...1.4.8

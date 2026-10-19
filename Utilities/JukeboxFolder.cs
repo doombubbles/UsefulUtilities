@@ -10,7 +10,6 @@ using BTD_Mod_Helper.Api.Internal;
 using BTD_Mod_Helper.Api.ModOptions;
 using Il2CppNinjaKiwi.Localization;
 using MelonLoader.Utils;
-using UnityEngine;
 using TaskScheduler = BTD_Mod_Helper.Api.TaskScheduler;
 
 // ReSharper disable IteratorMethodResultIsIgnored
@@ -127,30 +126,24 @@ public class JukeboxFolder : UsefulUtility
             ModHelper.Msg<UsefulUtilitiesMod>($"Adding track \"{Name}\" from {FilePath}");
         }
 
-        protected override AudioClip? LoadClip()
+        protected override AudioSamples DecodeClip()
         {
             try
             {
                 var start = DateTime.Now;
                 using var waveStream = ResourceHandler.GetWaveStream(FilePath);
-                if (NormalizeVolume) BloonsMod.NormalizeAudioVolume.Add(Id);
-                var audioClip = ResourceHandler.CreateAudioClip(waveStream, Id);
+                var samples = ResourceHandler.DecodeAudioSamples(waveStream, NormalizeVolume);
                 var end = DateTime.Now;
 
-                if (audioClip != null)
-                {
-                    ModHelper.Msg<UsefulUtilitiesMod>(
-                        $"Successfully processed track {Name} duration {TimeSpan.FromSeconds(audioClip.length):g} in {(end - start).TotalSeconds:N1}s");
-                    return audioClip;
-                }
+                ModHelper.Msg<UsefulUtilitiesMod>(
+                    $"Successfully processed track {Name} duration {TimeSpan.FromSeconds(samples.Length):g} in {(end - start).TotalSeconds:N1}s");
+                return samples;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                ModHelper.Error<UsefulUtilitiesMod>(e);
+                ModHelper.Error<UsefulUtilitiesMod>($"Unable to parse potential jukebox track file {FilePath}");
+                throw;
             }
-
-            ModHelper.Error<UsefulUtilitiesMod>($"Unable to parse potential jukebox track file {FilePath}");
-            return null;
         }
     }
 }
